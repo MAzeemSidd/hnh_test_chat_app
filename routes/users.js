@@ -11,17 +11,15 @@ const db = mysql.createConnection({
 
 const router = express.Router();
 
-// router.post('/login', (req, res) => {
-//     const query = 'SELECT * FROM users WHERE `email` = ? AND `password` = ?';
-//     const values = [req.body.email, req.body.password]
+//Get list of Users
+router.get('/', async (req, res) => {
+    const query = 'SELECT * FROM users'
 
-//     db.query(query, values, (err,data) => {
-//         if(err) return res.send(err);
-//         console.log(data)
-//         if(data.length !== 0) return res.sendStatus(200);
-//         return res.sendStatus(404);
-//     })
-// })
+    db.query(query, (err, data) => {
+        if(err) return res.send(err);
+        return res.json(data);
+    })
+})
 
 router.post('/login', (req, res) => {
     const query = 'SELECT * FROM users WHERE `email` = ?';
@@ -39,7 +37,7 @@ router.post('/login', (req, res) => {
         const match = await bcrypt.compare(req.body.password, user.password);
     
         if (match) {
-            return res.sendStatus(200); // Password matches
+            return res.send(data[0]); // Password matches
         } else {
             return res.status(401).send('Invalid credentials'); // Password doesn't match
         }
