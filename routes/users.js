@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/login', (req, res) => {
-    const query = 'SELECT * FROM users WHERE `email` = ?';
+    const query = 'SELECT `id`, `firstname`, `lastname`, `email`, `password` FROM users WHERE `email` = ?';
     const email = req.body.email;
   
     db.query(query, [email], async (err, data) => {
@@ -33,11 +33,11 @@ router.post('/login', (req, res) => {
         }
   
         // Check if the password matches
-        const user = data[0];
-        const match = await bcrypt.compare(req.body.password, user.password);
+        const { password, ...restData } = data[0];
+        const match = await bcrypt.compare(req.body.password, password);
     
         if (match) {
-            return res.send(data[0]); // Password matches
+            return res.send(restData); // Password matches
         } else {
             return res.status(401).send('Invalid credentials'); // Password doesn't match
         }
@@ -54,7 +54,12 @@ router.post('/signup', async (req, res) => {
     
         db.query(query, [values], (err) => {
             if(err) return res.send(err);
-            return res.sendStatus(200);
+
+            const searchQuery = 'SELECT `id`, `firstname`, `lastname`, `email` FROM users WHERE `email` = ?';
+            db.query(searchQuery, [req.body.email], (error, data) => {
+                if(error) return res.send(error);
+                return res.json(data[0]);
+            })
         })
     } catch (error) {
         return res.status(500).send('Error while signing up');
