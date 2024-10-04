@@ -1,13 +1,7 @@
 const express = require('express');
-const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root123',
-    database: 'test_chat_app_db',
-})
+const db = require('../functions/dbConnection')
 
 const router = express.Router();
 
