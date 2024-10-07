@@ -62,24 +62,25 @@ io.on('connection', (socket) => {
     console.log('data', data)
 
     try {
-      const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
-      await addFunction(query, [from, to, message, chatId])
-
       //Checking if the receiver is online
       const targetSocketId = registeredUsers[data.to];
-  
+      
+      //If user is not available then send message to the receiver and the sender too.
       if (targetSocketId) {
-        /*** Note:  "If user is available then store the message in the database send it to reciever and emit it to sender" ***/
-  
         // Send the message only to the connected specific user socket
         io.to(targetSocketId).emit('message', data);
         socket.emit('message', data);
         console.log(`Message from User ${data.from} to User ${to}: ${message}`);
-      } else {
-        console.log(`User ${to} not found`);
-        /*** Note:  "If user is not available then only store the message in the database and emit it to sender" ***/
-        socket.emit('message', data);
       }
+      //If user is not available then send message only to the sender
+      else {
+        console.log(`User ${to} not found`);
+        socket.emit('message', data); //Sending message to the sender
+      }
+      
+      //Save Chat into database
+      const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
+      await addFunction(query, [from, to, message, chatId])
 
     } catch (error) {
       socket.emit('message', error);
