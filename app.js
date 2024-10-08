@@ -2,12 +2,10 @@ const http = require('http');
 const express = require('express')
 const { Server } = require('socket.io');
 const cors = require('cors');
+const chatSocket = require('./webSockets/chatSocket')
 
 //Database connection variable
 const db = require('./functions/dbConnection')
-
-//Require Function
-const addFunction = require('./functions/addFunction')
 
 //Importing Routes
 const usersRoute = require('./routes/users');
@@ -15,92 +13,23 @@ const chatsRoute = require('./routes/chats');
 
 const PORT = 9000;
 const app = express();
+
+//Create http server for both api requests and web socket connection
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "http://localhost:3000"
-    }
-});
 
-app.use(express.json());
-app.use(cors());
+//Initialize socket.io defined in a separate file
+const io = chatSocket(server);
 
+//Middlewares
+app.use(express.json()); //For parsing incoming json data
+app.use(cors()); //It enables cors
+/* It enables the express server to respond to preflight requests
+ A preflight request is basically an OPTION request sent to the server before the actual request is sent,
+ in order to ask which origin and which request options the server accepts */
+
+//Routes
 app.use('/users', usersRoute);
 app.use('/chats', chatsRoute);
-
-// io.on('connection', socket => {
-//     // socket.emit('get_users', {id: 111, name: 'Azeem'})
-
-//     socket.on('chat', (data) => {
-//         console.log('data', data)
-
-//         // socket.broadcast.emit('message', {id: socket.id, ...data})
-//         // socket.emit('message', {id: socket.id, ...data})
-//         io.emit('message', {id: socket.id, ...data})
-//     })
-    
-// })
-
-
-// Object to store userId: socket.id pairs
-const registeredUsers = {};
-
-io.on('connection', (socket) => {
-  console.log(`New connection: ${socket.id}`);
-
-  // user registration with their user ID
-  socket.on('register', (userId) => {
-    registeredUsers[userId] = socket.id;
-    console.log(`users:,`,registeredUsers);
-    console.log(`User ${userId} registered with socket ID ${socket.id}`);
-  });
-
-
-  // For chat messages
-  socket.on('chat', async (data) => {
-    const { from, to, message, chatId } = data;
-    console.log('data', data)
-
-    try {
-      //Checking if the receiver is online
-      const targetSocketId = registeredUsers[data.to];
-      
-      //If user is not available then send message to the receiver and the sender too.
-      if (targetSocketId) {
-        // Send the message only to the connected specific user socket
-        io.to(targetSocketId).emit('message', data);
-        socket.emit('message', data);
-        console.log(`Message from User ${data.from} to User ${to}: ${message}`);
-      }
-      //If user is not available then send message only to the sender
-      else {
-        console.log(`User ${to} not found`);
-        socket.emit('message', data); //Sending message to the sender
-      }
-      
-      //Save Chat into database
-      const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
-      await addFunction(query, [from, to, message, chatId])
-
-    } catch (error) {
-      socket.emit('message', error);
-    }
-
-  });
-
-
-  // For disconnection from socket
-  socket.on('disconnect', () => {
-    // Remove the user from the users object
-    for (const [userId, sockId] of Object.entries(registeredUsers)) {
-      if (sockId === socket.id) {
-        delete registeredUsers[userId];
-        console.log(`User ${userId} disconnected`);
-        break;
-      }
-    }
-  });
-});
 
 //Closing database connection on app close
 process.on('SIGINT', () => {
@@ -113,9 +42,5 @@ process.on('SIGINT', () => {
     process.exit();
   });
 });
-
-app.get('/', (req, res)=>{
-    res.send('GET API')
-})
 
 server.listen(9000, ()=>console.log(`Server Running on PORT ${PORT}`))
