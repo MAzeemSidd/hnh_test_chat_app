@@ -1,13 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const db = require('../functions/dbConnection')
 
 const router = express.Router();
 
-const JWT_SECRET = '__mySecret_KEY@chat_app__';
-
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+console.log(JWT_SECRET_KEY)
 //Get list of Users
 router.get('/', async (req, res) => {
     const query = 'SELECT * FROM users'
@@ -35,11 +38,11 @@ router.post('/login', (req, res) => {
     
         if (match) { // Password matches
             try {
-                const token = jwt.sign({ id: restOfTheData.id, email: restOfTheData.email }, JWT_SECRET, { expiresIn: '1h' });
+                const token = jwt.sign({ id: restOfTheData.id, email: restOfTheData.email }, JWT_SECRET_KEY, { expiresIn: '1h' });
                 return res.send({...restOfTheData, token});
             }
             catch { //If error occur during token creation
-                return res.status(500).send('Error creating token');
+                return res.status(500).send('Error occured during "Token" creation');
             }
         }
         else { // Password doesn't match
@@ -65,11 +68,11 @@ router.post('/signup', async (req, res) => {
 
                 try {
                     //Generating Token
-                    const token = jwt.sign({ id: data[0].id, email: data[0].email }, JWT_SECRET, { expiresIn: '1h' });
+                    const token = jwt.sign({ id: data[0].id, email: data[0].email }, JWT_SECRET_KEY, { expiresIn: '1h' });
                     return res.json({...data[0], token});
                 }
                 catch { //If error occur during creation
-                    return res.status(500).send('Error creating token');
+                    return res.status(500).send('Error occured during "Token" creation');
                 }
             })
         })

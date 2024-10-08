@@ -3,21 +3,59 @@ const { Server } = require('socket.io');
 
 const registerHandler = require('./handlers/registerHandler');
 const chatHandler = require('./handlers/chatHandler');
+const getFunction = require('../functions/getFunction')
+const jwt = require('jsonwebtoken');
 
 const chatSocket = (server) => {
     const io = new Server(server, {
         cors: {
             origin: "http://localhost:3000",
             methods: ["GET", "POST"],
-            allowedHeaders: ["Authorization"],
+            allowedHeaders: ["Authorization", "userId"],
             credentials: true
         }
     });
 
     const registeredUsers = {};
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log(`New connection: ${socket.id}`);
+
+        //Get JWT Token passed from client for authentication
+        const token = socket.handshake.headers['authorization']?.split(' ')[1];
+        console.log('token---', token)
+
+        if(!token) {
+            socket.disconnect(); // Disconnect the socket
+            return; // Exit the connection handler 
+        }
+        
+        const result = jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+            // Forbidden - If jwt verification give error
+            if (err) return err
+            return user
+        });
+
+        if(!result?.id) {
+            socket.disconnect(); // Disconnect the socket
+            return; // Exit the connection handler
+        }
+        
+        
+        // if(userId) {
+        //     const query = `SELECT * FROM users WHERE id=${userId}`
+        //     const userList = await getFunction(query)
+        //     console.log('userList', userList)
+
+        //     if(userList?.length === 0) {
+        //         socket.disconnect(); // Disconnect the socket
+        //         return; // Exit the connection handler
+        //     }
+        // }
+        // else {
+        //     socket.disconnect(); // Disconnect the socket
+        //     return; // Exit the connection handler
+        // }
 
         // Register user
         registerHandler(socket, registeredUsers);

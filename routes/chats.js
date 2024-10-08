@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 
 //Require database connection
 const db = require('../functions/dbConnection')
@@ -7,25 +8,39 @@ const db = require('../functions/dbConnection')
 const getFunction = require('../functions/getFunction');
 const addFunction = require('../functions/addFunction');
 
+// Middleware to verify JWT
+const authenticateJwtToken = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
+    
+     // Unauthorized - If no token available
+    if (!token) return res.status(401).send('User is not authorized');
+
+    jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+        // Forbidden - If jwt verification give error
+        if (err) return res.status(403).send(`${err.message}`)
+        
+        req.user = user; // Attach user data to request object
+        next(); // Proceed to the next middleware or route handler
+    });
+};
+
 
 const router = express.Router();
 
 //Get chat according to chatId
-router.get('/', async (req, res) => {
-    //Check for authorized user
-    if(!req.headers.authorization) return res.status(403).send('User is not authorized')
-    
+router.get('/', authenticateJwtToken, async (req, res) => {
     //Check for chatId in params
     if(!req.query.chatId) return res.send('Missing "chatId" in query params');
 
     try {
         //Restrict user to only access the chats which is associated to the request user.
-        const userId = req.headers?.userid
+        const userId = req.user?.id
         const queryForUserChatList = `SELECT DISTINCT chatId FROM chats WHERE \`from\`=${userId} OR \`to\`=${userId};`
         const chatList = await getFunction(queryForUserChatList)
+        
         //Check chat is available in the users chat
         const isAvailable = chatList.find(chat => chat.chatId === req.query.chatId);
-        if(!isAvailable) return res.status(403).send('Access Denied!') //Forbidden in case of other user chats
+        if(!isAvailable) return res.status(403).send('Access Denied!') //Forbidden
 
         //If Chat available in user chats then send that chat to the user in response.
         const queryForParticularChat = `SELECT * FROM chats WHERE chatId='${req.query.chatId}';`
@@ -48,7 +63,6 @@ router.get('/list', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-    console.log('INSERT INTO chats - req.header', req.header)
     const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
     const {from, to, message, chatId} = req.body
     const values = [from, to, message, chatId]

@@ -1,6 +1,5 @@
 const http = require('http');
 const express = require('express')
-const { Server } = require('socket.io');
 const cors = require('cors');
 const chatSocket = require('./webSockets/chatSocket')
 
@@ -11,7 +10,7 @@ const db = require('./functions/dbConnection')
 const usersRoute = require('./routes/users');
 const chatsRoute = require('./routes/chats');
 
-const PORT = 9000;
+const PORT = process.env.PORT;
 const app = express();
 
 //Create http server for both api requests and web socket connection
