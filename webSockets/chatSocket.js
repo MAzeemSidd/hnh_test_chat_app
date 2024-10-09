@@ -30,32 +30,15 @@ const chatSocket = (server) => {
             return; // Exit the connection handler 
         }
         
-        const result = jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
-            // Forbidden - If jwt verification give error
-            if (err) return err
-            return user
+        const user = jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+            if (err) return err // Forbidden - If jwt verification give error
+            return user // else return user
         });
 
-        if(!result?.id) {
+        if(!user?.id) {
             socket.disconnect(); // Disconnect the socket
             return; // Exit the connection handler
         }
-        
-        
-        // if(userId) {
-        //     const query = `SELECT * FROM users WHERE id=${userId}`
-        //     const userList = await getFunction(query)
-        //     console.log('userList', userList)
-
-        //     if(userList?.length === 0) {
-        //         socket.disconnect(); // Disconnect the socket
-        //         return; // Exit the connection handler
-        //     }
-        // }
-        // else {
-        //     socket.disconnect(); // Disconnect the socket
-        //     return; // Exit the connection handler
-        // }
 
         // Register user
         registerHandler(socket, registeredUsers);

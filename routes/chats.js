@@ -1,5 +1,5 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+// const jwt = require('jsonwebtoken');
 
 //Require database connection
 const db = require('../functions/dbConnection')
@@ -8,27 +8,31 @@ const db = require('../functions/dbConnection')
 const getFunction = require('../functions/getFunction');
 const addFunction = require('../functions/addFunction');
 
-// Middleware to verify JWT
-const authenticateJwtToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
-    
-     // Unauthorized - If no token available
-    if (!token) return res.status(401).send('User is not authorized');
+//Require Custom Middleware
+const authenticateUser = require('../middlewares/authenticateUser')
 
-    jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
-        // Forbidden - If jwt verification give error
-        if (err) return res.status(403).send(`${err.message}`)
+// Middleware to verify JWT
+// const authenticateUser = (req, res, next) => {
+//     const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
+    
+//      // Unauthorized - If no token available
+//     if (!token) return res.status(401).json({ message: 'User is not authorized' });
+
+//     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+//         // Forbidden - If jwt verification give error
+//         if (err) return res.status(403).json({ message: 'User is unauthorized' });
         
-        req.user = user; // Attach user data to request object
-        next(); // Proceed to the next middleware or route handler
-    });
-};
+//         console.log('user', user)
+//         req.user = user; // Attach user data to request object
+//         next(); // Proceed to the next middleware or route handler
+//     });
+// };
 
 
 const router = express.Router();
 
 //Get chat according to chatId
-router.get('/', authenticateJwtToken, async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
     //Check for chatId in params
     if(!req.query.chatId) return res.send('Missing "chatId" in query params');
 
@@ -40,7 +44,7 @@ router.get('/', authenticateJwtToken, async (req, res) => {
         
         //Check chat is available in the users chat
         const isAvailable = chatList.find(chat => chat.chatId === req.query.chatId);
-        if(!isAvailable) return res.status(403).send('Access Denied!') //Forbidden
+        if(!isAvailable) return res.status(404).json({ message: 'There are no messages' }) //No Chat Found
 
         //If Chat available in user chats then send that chat to the user in response.
         const queryForParticularChat = `SELECT * FROM chats WHERE chatId='${req.query.chatId}';`
@@ -51,16 +55,17 @@ router.get('/', authenticateJwtToken, async (req, res) => {
     }
 })
 
-router.get('/list', async (req, res) => {
-    const query = 'SELECT DISTINCT chatId FROM chats;'
+// router.get('/list', authenticateUser, async (req, res) => {
+//     const userId = req.user?.id
+//     const query = `SELECT DISTINCT chatId FROM chats WHERE \`from\`=${userId} OR \`to\`=${userId};`
 
-    try {
-        const data = await getFunction(query)
-        res.json(data)
-    } catch (error) {
-        res.send(error)
-    }
-})
+//     try {
+//         const data = await getFunction(query)
+//         res.json(data)
+//     } catch (error) {
+//         res.send(error)
+//     }
+// })
 
 router.post('/', async (req, res) => {
     const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
