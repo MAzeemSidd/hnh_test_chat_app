@@ -5,15 +5,19 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+//Require database connection
 const db = require('../functions/dbConnection')
+
+//Require Custom Middleware
+const authenticateUser = require('../middlewares/authenticateUser')
 
 const router = express.Router();
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 //Get list of Users
-router.get('/', async (req, res) => {
-    const query = 'SELECT * FROM users'
+router.get('/', authenticateUser, async (req, res) => {
+    const query = 'SELECT `id`, `firstname`, `lastname`, `email` FROM users'
 
     db.query(query, (err, data) => {
         if(err) return res.send(err);

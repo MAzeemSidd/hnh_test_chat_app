@@ -1,5 +1,4 @@
 const express = require('express');
-// const jwt = require('jsonwebtoken');
 
 //Require database connection
 const db = require('../functions/dbConnection')
@@ -11,27 +10,10 @@ const addFunction = require('../functions/addFunction');
 //Require Custom Middleware
 const authenticateUser = require('../middlewares/authenticateUser')
 
-// Middleware to verify JWT
-// const authenticateUser = (req, res, next) => {
-//     const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
-    
-//      // Unauthorized - If no token available
-//     if (!token) return res.status(401).json({ message: 'User is not authorized' });
-
-//     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
-//         // Forbidden - If jwt verification give error
-//         if (err) return res.status(403).json({ message: 'User is unauthorized' });
-        
-//         console.log('user', user)
-//         req.user = user; // Attach user data to request object
-//         next(); // Proceed to the next middleware or route handler
-//     });
-// };
-
 
 const router = express.Router();
 
-//Get chat according to chatId
+//Get chat messages according to chatId
 router.get('/', authenticateUser, async (req, res) => {
     //Check for chatId in params
     if(!req.query.chatId) return res.send('Missing "chatId" in query params');
@@ -55,21 +37,13 @@ router.get('/', authenticateUser, async (req, res) => {
     }
 })
 
-// router.get('/list', authenticateUser, async (req, res) => {
-//     const userId = req.user?.id
-//     const query = `SELECT DISTINCT chatId FROM chats WHERE \`from\`=${userId} OR \`to\`=${userId};`
-
-//     try {
-//         const data = await getFunction(query)
-//         res.json(data)
-//     } catch (error) {
-//         res.send(error)
-//     }
-// })
-
-router.post('/', async (req, res) => {
-    const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
+//Save message in a chat a/c to id -- Only for Testing
+router.post('/', authenticateUser, async (req, res) => {
     const {from, to, message, chatId} = req.body
+
+    if(from !== req.user?.id || to !== req.user?.id) return res.status(401).send('Unauthorized User')
+
+    const query = 'INSERT INTO chats (`from`, `to`, `message`, `chatId`) VALUES (?)'
     const values = [from, to, message, chatId]
     
     try {
