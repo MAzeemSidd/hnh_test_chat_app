@@ -7,7 +7,7 @@ const chatSocket = require('./webSockets/chatSocket')
 const db = require('./functions/dbConnection')
 
 //Importing Routes
-const usersRoute = require('./routes/users');
+const usersRoute = require('./routes/users/users');
 const chatsRoute = require('./routes/chats');
 
 const PORT = process.env.PORT;

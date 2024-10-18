@@ -6,10 +6,14 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 //Require database connection
-const db = require('../functions/dbConnection')
+const db = require('../../functions/dbConnection')
 
 //Require Custom Middleware
-const authenticateUser = require('../middlewares/authenticateUser')
+const authenticateUser = require('../../middlewares/authenticateUser')
+
+//For Form Validation
+const { loginValidationRules, signupValidationRules, formValidation } = require('./formValidation');
+
 
 const router = express.Router();
 
@@ -25,7 +29,8 @@ router.get('/', authenticateUser, async (req, res) => {
     })
 })
 
-router.post('/login', (req, res) => {
+//Login
+router.post('/login', loginValidationRules, formValidation, (req, res) => {
     const query = 'SELECT `id`, `firstname`, `lastname`, `email`, `password` FROM users WHERE `email` = ?';
     const email = req.body.email;
   
@@ -55,8 +60,8 @@ router.post('/login', (req, res) => {
     });
 });
   
-
-router.post('/signup', async (req, res) => {
+//Signup
+router.post('/signup', signupValidationRules, formValidation, async (req, res) => {
     try {
         // Hash the password with a salt
         const hashedPassword = await bcrypt.hash(req.body.password, 10); // Second argument is a salt value
